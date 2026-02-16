@@ -1,14 +1,1648 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FuturesEdge - 바이낸스 선물거래 알람 서비스</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #06080d;
+    --bg-card: #0c1017;
+    --bg-card-hover: #111820;
+    --accent-gold: #f0b90b;
+    --accent-gold-dim: #c99a09;
+    --accent-green: #0ecb81;
+    --accent-red: #f6465d;
+    --text-primary: #eaecef;
+    --text-secondary: #848e9c;
+    --text-dim: #5e6673;
+    --border: #1e2329;
+    --border-light: #2b3139;
+    --glow-gold: rgba(240, 185, 11, 0.15);
+    --glow-green: rgba(14, 203, 129, 0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ========== NOISE OVERLAY ========== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ========== ANIMATED GRID BG ========== */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240, 185, 11, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240, 185, 11, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+  }
+
+  .grid-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(240, 185, 11, 0.06), transparent 70%);
+  }
+
+  /* ========== NAVIGATION ========== */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(20px);
+    background: rgba(6, 8, 13, 0.8);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-gold);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--bg-deep);
+    transform: rotate(-5deg);
+  }
+
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent-gold); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.3s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .nav-links a:hover { color: var(--accent-gold); }
+
+  .btn-nav {
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-nav:hover {
+    background: #fcd435;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(240, 185, 11, 0.3);
+  }
+
+  /* ========== HERO ========== */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 40px 80px;
+    text-align: center;
+  }
+
+  .hero-content { max-width: 900px; }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(240, 185, 11, 0.08);
+    border: 1px solid rgba(240, 185, 11, 0.2);
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-gold);
+    margin-bottom: 32px;
+    animation: fadeInUp 0.8s ease;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .hero-badge .pulse {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+
+  .hero h1 {
+    font-size: clamp(48px, 7vw, 88px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -3px;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.8s ease 0.1s both;
+  }
+
+  .hero h1 .gold { color: var(--accent-gold); }
+  .hero h1 .outline {
+    -webkit-text-stroke: 1.5px var(--text-secondary);
+    color: transparent;
+  }
+
+  .hero-desc {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto 48px;
+    line-height: 1.7;
+    animation: fadeInUp 0.8s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeInUp 0.8s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+    padding: 16px 40px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-primary:hover {
+    background: #fcd435;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(240, 185, 11, 0.35);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-primary);
+    padding: 16px 40px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    border: 1px solid var(--border-light);
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: rgba(240, 185, 11, 0.05);
+  }
+
+  /* ========== LIVE TICKER ========== */
+  .ticker-wrap {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+    background: rgba(12, 16, 23, 0.6);
+    backdrop-filter: blur(10px);
+  }
+
+  .ticker {
+    display: flex;
+    gap: 48px;
+    animation: scroll 25s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+  }
+
+  .ticker-symbol { color: var(--text-primary); font-weight: 700; }
+  .ticker-price { color: var(--text-secondary); }
+  .ticker-change { font-weight: 700; }
+  .ticker-change.up { color: var(--accent-green); }
+  .ticker-change.down { color: var(--accent-red); }
+
+  @keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ========== SECTIONS COMMON ========== */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 120px 40px;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+    line-height: 1.1;
+  }
+
+  .section-desc {
+    font-size: 16px;
+    color: var(--text-secondary);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  /* ========== FEATURES ========== */
+  .features { max-width: 1200px; margin: 0 auto; }
+
+  .features-header {
+    text-align: center;
+    margin-bottom: 72px;
+  }
+
+  .features-header .section-desc { margin: 0 auto; }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(240, 185, 11, 0.3);
+    transform: translateY(-4px);
+    background: var(--bg-card-hover);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(240, 185, 11, 0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+
+  .feature-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ========== HOW IT WORKS ========== */
+  .how-it-works { max-width: 1200px; margin: 0 auto; }
+
+  .how-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .how-header .section-desc { margin: 0 auto; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 12.5%;
+    right: 12.5%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-gold), var(--accent-green));
+    opacity: 0.3;
+  }
+
+  .step {
+    text-align: center;
+    position: relative;
+  }
+
+  .step-number {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--accent-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    position: relative;
+    z-index: 2;
+  }
+
+  .step h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .step p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ========== PRICING ========== */
+  .pricing { max-width: 1200px; margin: 0 auto; }
+
+  .pricing-header {
+    text-align: center;
+    margin-bottom: 72px;
+  }
+
+  .pricing-header .section-desc { margin: 0 auto; }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .price-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 32px;
+    transition: all 0.4s;
+    position: relative;
+  }
+
+  .price-card.featured {
+    border-color: var(--accent-gold);
+    transform: scale(1.03);
+    box-shadow: 0 0 60px rgba(240, 185, 11, 0.1);
+  }
+
+  .price-card.featured .popular-badge {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+    padding: 6px 20px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .price-tier {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .price-amount {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-bottom: 4px;
+  }
+
+  .price-amount span {
+    font-size: 18px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .price-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .price-features {
+    list-style: none;
+    margin-bottom: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .price-features li {
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .price-features li::before {
+    content: '✓';
+    color: var(--accent-green);
+    font-weight: 700;
+    font-size: 14px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .btn-plan {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-plan-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+  }
+
+  .btn-plan-outline:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+
+  .btn-plan-filled {
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+  }
+
+  .btn-plan-filled:hover {
+    background: #fcd435;
+    box-shadow: 0 8px 30px rgba(240, 185, 11, 0.3);
+  }
+
+  /* ========== SIGNUP MODAL ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-deep);
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    z-index: 10;
+  }
+
+  .modal-close:hover {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+
+  .modal-body { padding: 48px 40px; }
+
+  .modal-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+
+  .modal-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 36px;
+  }
+
+  /* ========== FORM STEPS ========== */
+  .form-step { display: none; }
+  .form-step.active { display: block; }
+
+  .step-indicators {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .step-ind {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border);
+    transition: background 0.4s;
+  }
+
+  .step-ind.done { background: var(--accent-gold); }
+  .step-ind.current { background: var(--accent-gold); }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    transition: all 0.3s;
+    outline: none;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.1);
+  }
+
+  .form-group input::placeholder { color: var(--text-dim); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .api-warning {
+    background: rgba(240, 185, 11, 0.06);
+    border: 1px solid rgba(240, 185, 11, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .api-warning-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .api-warning p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .btn-form {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-form-next {
+    background: var(--accent-gold);
+    color: var(--bg-deep);
+  }
+
+  .btn-form-next:hover {
+    background: #fcd435;
+    box-shadow: 0 8px 30px rgba(240, 185, 11, 0.3);
+  }
+
+  .btn-form-back {
+    background: transparent;
+    color: var(--text-secondary);
+    margin-top: 12px;
+  }
+
+  .btn-form-back:hover { color: var(--text-primary); }
+
+  /* Payment cards display */
+  .payment-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .payment-option {
+    background: var(--bg-deep);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .payment-option.selected {
+    border-color: var(--accent-gold);
+    background: rgba(240, 185, 11, 0.05);
+  }
+
+  .payment-option:hover { border-color: var(--text-dim); }
+
+  .payment-option .pay-icon { font-size: 28px; margin-bottom: 8px; }
+  .payment-option .pay-name { font-size: 14px; font-weight: 600; }
+  .payment-option .pay-desc { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  .selected-plan-summary {
+    background: rgba(14, 203, 129, 0.06);
+    border: 1px solid rgba(14, 203, 129, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .selected-plan-summary .plan-name {
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .selected-plan-summary .plan-price {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    color: var(--accent-gold);
+    font-size: 18px;
+  }
+
+  /* Success state */
+  .success-state {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .success-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(14, 203, 129, 0.1);
+    border: 2px solid var(--accent-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 24px;
+  }
+
+  .success-state h3 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+
+  .success-state p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ========== STATS BAR ========== */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .stat-item { text-align: center; }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    letter-spacing: -2px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ========== FOOTER ========== */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 60px 40px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .footer-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 48px;
+  }
+
+  .footer-brand .logo { margin-bottom: 16px; }
+
+  .footer-brand p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    max-width: 280px;
+  }
+
+  .footer-col h4 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .footer-col a {
+    display: block;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-decoration: none;
+    margin-bottom: 12px;
+    transition: color 0.3s;
+  }
+
+  .footer-col a:hover { color: var(--accent-gold); }
+
+  .footer-bottom {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-bottom p {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ========== ANIMATIONS ========== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 1024px) {
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+    .price-card.featured { transform: none; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .steps::before { display: none; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 12px 20px; }
+    .nav-links { display: none; }
+    section { padding: 80px 20px; }
+    .hero { padding: 100px 20px 60px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; gap: 48px; }
+    .form-row { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr; }
+    .footer-bottom { flex-direction: column; gap: 12px; }
+    .modal-body { padding: 36px 24px; }
+    .payment-methods { grid-template-columns: 1fr; }
+  }
+
+  .theme-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    margin-left: 24px;
+  }
+
+  .theme-toggle-btn:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+
+  @media (max-width: 768px) {
+    .theme-toggle-btn { margin-left: auto; }
+  }
+
+  body[data-theme="light"] {
+    --bg-deep: #f5f7fa;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f0f2f5;
+    --accent-gold: #c79808;
+    --accent-gold-dim: #a17b06;
+    --accent-green: #0da366;
+    --accent-red: #e03c50;
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-dim: #718096;
+    --border: #e2e8f0;
+    --border-light: #cbd5e0;
+    --glow-gold: rgba(199, 152, 8, 0.15);
+    --glow-green: rgba(13, 163, 102, 0.1);
+  }
+
+  /* Specific adjustments for light theme */
+  body[data-theme="light"] nav {
+    background: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid var(--border);
+  }
+
+  body[data-theme="light"] .hero h1 .outline {
+    -webkit-text-stroke: 1.5px var(--text-dim);
+    color: transparent;
+  }
+  
+  body[data-theme="light"] body::before {
+    opacity: 0.05;
+  }
+
+  body[data-theme="light"] .grid-bg {
+     background-image:
+      linear-gradient(rgba(200, 160, 20, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200, 160, 20, 0.05) 1px, transparent 1px);
+  }
+   body[data-theme="light"] .grid-bg::after {
+     background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(200, 160, 20, 0.08), transparent 70%);
+   }
+
+  body[data-theme="light"] .ticker-wrap {
+    background: rgba(245, 247, 250, 0.6);
+  }
+
+  body[data-theme="light"] .feature-card {
+     box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  }
+
+   body[data-theme="light"] .feature-card:hover {
+     box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+   }
+
+  body[data-theme="light"] .price-card.featured {
+    box-shadow: 0 0 60px rgba(199, 152, 8, 0.15);
+  }
+</style>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+
+<div class="grid-bg"></div>
+
+<!-- ======== NAVIGATION ======== -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">F</div>
+    <div class="logo-text">Futures<span>Edge</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">기능</a></li>
+    <li><a href="#how">이용방법</a></li>
+    <li><a href="#pricing">요금제</a></li>
+    <li><a href="#" class="btn-nav" onclick="openModal()">시작하기</a></li>
+  </ul>
+  <button title="Toggle light/dark mode" class="theme-toggle-btn">☀️</button>
+  <button title="Toggle light/dark mode" class="theme-toggle-btn">☀️</button>
+<button title="Toggle light/dark mode" class="theme-toggle-btn">☀️</button>
+</nav>
+
+<!-- ======== HERO ======== -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="pulse"></span>
+      실시간 알람 서비스 운영중
+    </div>
+    <h1>
+      바이낸스 선물거래<br>
+      <span class="gold">스마트 알람</span><br>
+      <span class="outline">시스템</span>
+    </h1>
+    <p class="hero-desc">
+      AI 기반 실시간 시장 분석으로 최적의 진입/청산 타이밍을 놓치지 마세요.
+      Binance API 연동으로 24시간 자동 모니터링됩니다.
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary">
+        요금제 선택 →
+      </a>
+      <a href="#how" class="btn-secondary">
+        이용 방법 보기
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ======== LIVE TICKER ======== -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <div class="ticker-item"><span class="ticker-symbol">BTC/USDT</span><span class="ticker-price">68,432.50</span><span class="ticker-change up">+2.34%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">ETH/USDT</span><span class="ticker-price">3,891.20</span><span class="ticker-change up">+1.87%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">SOL/USDT</span><span class="ticker-price">178.45</span><span class="ticker-change down">-0.92%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">BNB/USDT</span><span class="ticker-price">612.30</span><span class="ticker-change up">+0.45%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">XRP/USDT</span><span class="ticker-price">0.6234</span><span class="ticker-change down">-1.23%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">DOGE/USDT</span><span class="ticker-price">0.1842</span><span class="ticker-change up">+5.67%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">ARB/USDT</span><span class="ticker-price">1.2456</span><span class="ticker-change up">+3.12%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">AVAX/USDT</span><span class="ticker-price">38.91</span><span class="ticker-change down">-0.34%</span></div>
+    <!-- duplicate for seamless scroll -->
+    <div class="ticker-item"><span class="ticker-symbol">BTC/USDT</span><span class="ticker-price">68,432.50</span><span class="ticker-change up">+2.34%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">ETH/USDT</span><span class="ticker-price">3,891.20</span><span class="ticker-change up">+1.87%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">SOL/USDT</span><span class="ticker-price">178.45</span><span class="ticker-change down">-0.92%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">BNB/USDT</span><span class="ticker-price">612.30</span><span class="ticker-change up">+0.45%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">XRP/USDT</span><span class="ticker-price">0.6234</span><span class="ticker-change down">-1.23%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">DOGE/USDT</span><span class="ticker-price">0.1842</span><span class="ticker-change up">+5.67%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">ARB/USDT</span><span class="ticker-price">1.2456</span><span class="ticker-change up">+3.12%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">AVAX/USDT</span><span class="ticker-price">38.91</span><span class="ticker-change down">-0.34%</span></div>
+  </div>
+</div>
+
+<!-- ======== FEATURES ======== -->
+<section id="features">
+  <div class="features">
+    <div class="features-header fade-in">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">왜 FuturesEdge인가?</h2>
+      <p class="section-desc">고급 알고리즘과 실시간 데이터 분석으로 선물거래의 새로운 기준을 제시합니다.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">⚡</div>
+        <h3>실시간 알람</h3>
+        <p>급격한 가격 변동, 대량 청산, 펀딩비 이상 등 핵심 지표 발생 시 즉시 텔레그램/카카오톡으로 알림을 발송합니다.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🤖</div>
+        <h3>AI 시장 분석</h3>
+        <p>머신러닝 기반 패턴 인식으로 주요 지지/저항선, 추세 전환점, 거래량 이상 징후를 자동 감지합니다.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔗</div>
+        <h3>Binance API 연동</h3>
+        <p>Read-only API 키를 통한 안전한 연동. 계좌 정보와 포지션을 실시간 모니터링하여 맞춤 알림을 제공합니다.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📊</div>
+        <h3>포지션 트래커</h3>
+        <p>보유 포지션의 미실현 손익, 청산가, 레버리지를 한눈에 확인하고 위험도 관리 알림을 받을 수 있습니다.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🎯</div>
+        <h3>맞춤 전략 알림</h3>
+        <p>RSI, MACD, 볼린저밴드 등 원하는 기술적 지표 조건을 직접 설정하고, 조건 충족 시 알림을 받으세요.</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🛡️</div>
+        <h3>리스크 관리</h3>
+        <p>최대 손실 한도 도달, 펀딩비 과다 누적, 오버레버리지 등 위험 상황 발생 시 경고 알림을 발송합니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== STATS ======== -->
+<div class="stats-bar">
+  <div class="stat-item fade-in">
+    <div class="stat-value">12,400+</div>
+    <div class="stat-label">활성 사용자</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-value">98.7%</div>
+    <div class="stat-label">알람 정확도</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-value">&lt;0.3s</div>
+    <div class="stat-label">평균 지연시간</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-value">24/7</div>
+    <div class="stat-label">무중단 모니터링</div>
+  </div>
+</div>
+
+<!-- ======== HOW IT WORKS ======== -->
+<section id="how">
+  <div class="how-it-works">
+    <div class="how-header fade-in">
+      <div class="section-label">How it works</div>
+      <h2 class="section-title">4단계로 시작하세요</h2>
+      <p class="section-desc">복잡한 설정 없이 5분 안에 모든 세팅을 완료할 수 있습니다.</p>
+    </div>
+    <div class="steps">
+      <div class="step fade-in">
+        <div class="step-number">01</div>
+        <h3>회원가입</h3>
+        <p>이메일과 비밀번호로 간편하게 계정을 생성하세요.</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-number">02</div>
+        <h3>구독 결제</h3>
+        <p>필요에 맞는 요금제를 선택하고 결제를 완료하세요.</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-number">03</div>
+        <h3>API 키 등록</h3>
+        <p>바이낸스에서 Read-only API 키를 발급받아 등록하세요.</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-number">04</div>
+        <h3>알람 수신</h3>
+        <p>텔레그램 봇을 연동하면 실시간 알람이 시작됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== PRICING ======== -->
+<section id="pricing">
+  <div class="pricing">
+    <div class="pricing-header fade-in">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">합리적인 요금제</h2>
+      <p class="section-desc">모든 요금제는 7일 무료 체험을 포함합니다. 언제든 해지 가능합니다.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="price-card fade-in">
+        <div class="price-tier">Starter</div>
+        <div class="price-amount">₩29,900<span>/월</span></div>
+        <div class="price-desc">입문자를 위한 기본 알람 서비스</div>
+        <ul class="price-features">
+          <li>BTC/ETH 포함 5개 페어 알람</li>
+          <li>기본 기술적 지표 알림</li>
+          <li>텔레그램 알림</li>
+          <li>일일 시장 리포트</li>
+          <li>이메일 고객지원</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="openModal('Starter', '₩29,900')">Starter 시작하기</button>
+      </div>
+      <!-- Pro -->
+      <div class="price-card featured fade-in">
+        <div class="popular-badge">가장 인기</div>
+        <div class="price-tier">Pro</div>
+        <div class="price-amount">₩59,900<span>/월</span></div>
+        <div class="price-desc">본격적인 트레이더를 위한 프로 서비스</div>
+        <ul class="price-features">
+          <li>무제한 페어 알람</li>
+          <li>AI 기반 진입/청산 시그널</li>
+          <li>포지션 실시간 트래킹</li>
+          <li>맞춤 지표 조건 설정</li>
+          <li>리스크 관리 경고</li>
+          <li>전용 카카오톡 채널 지원</li>
+        </ul>
+        <button class="btn-plan btn-plan-filled" onclick="openModal('Pro', '₩59,900')">Pro 시작하기</button>
+      </div>
+      <!-- Enterprise -->
+      <div class="price-card fade-in">
+        <div class="price-tier">Enterprise</div>
+        <div class="price-amount">₩149,900<span>/월</span></div>
+        <div class="price-desc">기관 및 전문 트레이더를 위한 프리미엄</div>
+        <ul class="price-features">
+          <li>Pro의 모든 기능 포함</li>
+          <li>다중 계정 지원 (최대 5개)</li>
+          <li>고빈도 알람 (1초 단위)</li>
+          <li>전용 API 엔드포인트</li>
+          <li>1:1 전담 매니저</li>
+          <li>맞춤 전략 컨설팅</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="openModal('Enterprise', '₩149,900')">Enterprise 시작하기</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== FOOTER ======== -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="#" class="logo">
+        <div class="logo-icon">F</div>
+        <div class="logo-text">Futures<span>Edge</span></div>
+      </a>
+      <p>바이낸스 선물거래 알람 서비스의 새로운 기준. AI 기반 실시간 분석으로 한 발 앞선 트레이딩을 경험하세요.</p>
+    </div>
+    <div class="footer-col">
+      <h4>서비스</h4>
+      <a href="#">실시간 알람</a>
+      <a href="#">포지션 트래커</a>
+      <a href="#">AI 시그널</a>
+      <a href="#">리스크 관리</a>
+    </div>
+    <div class="footer-col">
+      <h4>지원</h4>
+      <a href="#">API 연동 가이드</a>
+      <a href="#">FAQ</a>
+      <a href="#">고객센터</a>
+      <a href="#">상태 페이지</a>
+    </div>
+    <div class="footer-col">
+      <h4>법적고지</h4>
+      <a href="#">이용약관</a>
+      <a href="#">개인정보처리방침</a>
+      <a href="#">면책조항</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 FuturesEdge. All rights reserved.</p>
+    <p>투자에 대한 최종 결정은 본인에게 있으며, 본 서비스는 투자 자문이 아닙니다.</p>
+  </div>
+</footer>
+
+<!-- ======== SIGNUP / API / PAYMENT MODAL ======== -->
+<div class="modal-overlay" id="signupModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-body">
+
+      <!-- Step Indicators -->
+      <div class="step-indicators">
+        <div class="step-ind current" id="ind1"></div>
+        <div class="step-ind" id="ind2"></div>
+        <div class="step-ind" id="ind3"></div>
+        <div class="step-ind" id="ind4"></div>
+      </div>
+
+      <!-- STEP 1: 회원가입 -->
+      <div class="form-step active" id="formStep1">
+        <h2 class="modal-title">회원가입</h2>
+        <p class="modal-subtitle">계정을 생성하고 서비스를 시작하세요.</p>
+
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="userName" placeholder="홍길동">
+        </div>
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="userEmail" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="userPassword" placeholder="8자 이상 입력">
+        </div>
+        <div class="form-group">
+          <label>비밀번호 확인</label>
+          <input type="password" id="userPasswordConfirm" placeholder="비밀번호를 다시 입력하세요">
+        </div>
+
+        <button class="btn-form btn-form-next" onclick="nextStep(1)">다음 단계 →</button>
+      </div>
+
+      <!-- STEP 2: 요금제 & 결제 -->
+      <div class="form-step" id="formStep2">
+        <h2 class="modal-title">구독 결제</h2>
+        <p class="modal-subtitle">요금제를 확인하고 결제 수단을 선택하세요.</p>
+
+        <div class="selected-plan-summary">
+          <div>
+            <div class="plan-name" id="selectedPlanName">Pro</div>
+            <div style="font-size:12px;color:var(--text-dim);">월간 구독 · 7일 무료 체험</div>
+          </div>
+          <div class="plan-price" id="selectedPlanPrice">₩59,900</div>
+        </div>
+
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">결제 수단 선택</label>
+        <div class="payment-methods">
+          <div class="payment-option selected" onclick="selectPayment(this)">
+            <div class="pay-icon">💳</div>
+            <div class="pay-name">신용/체크카드</div>
+            <div class="pay-desc">Visa, Mastercard, 국내카드</div>
+          </div>
+          <div class="payment-option" onclick="selectPayment(this)">
+            <div class="pay-icon">🏦</div>
+            <div class="pay-name">계좌이체</div>
+            <div class="pay-desc">실시간 계좌이체</div>
+          </div>
+          <div class="payment-option" onclick="selectPayment(this)">
+            <div class="pay-icon">📱</div>
+            <div class="pay-name">카카오페이</div>
+            <div class="pay-desc">간편결제</div>
+          </div>
+          <div class="payment-option" onclick="selectPayment(this)">
+            <div class="pay-icon">₿</div>
+            <div class="pay-name">USDT 결제</div>
+            <div class="pay-desc">TRC-20 네트워크</div>
+          </div>
+        </div>
+
+        <button class="btn-form btn-form-next" onclick="nextStep(2)">결제하기 →</button>
+        <button class="btn-form btn-form-back" onclick="prevStep(2)">← 이전 단계</button>
+      </div>
+
+      <!-- STEP 3: API 키 입력 -->
+      <div class="form-step" id="formStep3">
+        <h2 class="modal-title">API 키 등록</h2>
+        <p class="modal-subtitle">바이낸스 선물거래 API 키를 등록해주세요.</p>
+
+        <div class="api-warning">
+          <div class="api-warning-icon">🔒</div>
+          <div>
+            <p><strong style="color:var(--accent-gold);">보안 안내</strong><br>
+            반드시 <strong>Read-only (읽기 전용)</strong> 권한의 API 키만 등록해주세요. 출금 권한이 포함된 키는 사용하지 않습니다. 모든 키는 AES-256으로 암호화 저장됩니다.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="text" id="apiKey" placeholder="바이낸스 API Key를 입력하세요">
+        </div>
+        <div class="form-group">
+          <label>Secret Key</label>
+          <input type="password" id="secretKey" placeholder="바이낸스 Secret Key를 입력하세요">
+        </div>
+        <div class="form-group">
+          <label>알림 수신 채널</label>
+          <select id="alertChannel">
+            <option value="telegram">텔레그램</option>
+            <option value="kakao">카카오톡</option>
+            <option value="both">텔레그램 + 카카오톡</option>
+          </select>
+        </div>
+        <div class="form-group" id="telegramGroup">
+          <label>텔레그램 Chat ID</label>
+          <input type="text" id="telegramId" placeholder="@username 또는 Chat ID">
+        </div>
+
+        <button class="btn-form btn-form-next" onclick="nextStep(3)">등록 완료 →</button>
+        <button class="btn-form btn-form-back" onclick="prevStep(3)">← 이전 단계</button>
+      </div>
+
+      <!-- STEP 4: 완료 -->
+      <div class="form-step" id="formStep4">
+        <div class="success-state">
+          <div class="success-icon">✓</div>
+          <h3>가입이 완료되었습니다!</h3>
+          <p style="margin-bottom:24px;">
+            모든 설정이 완료되었습니다.<br>
+            몇 분 내로 알림 서비스가 활성화됩니다.<br>
+            텔레그램 봇에서 <strong style="color:var(--accent-gold);">/start</strong> 를 입력하면<br>
+            실시간 알람을 받으실 수 있습니다.
+          </p>
+          <button class="btn-form btn-form-next" onclick="closeModal()" style="max-width:280px;margin:0 auto;">대시보드로 이동 →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== MODAL ======
+  let currentStep = 1;
+  let selectedPlan = 'Pro';
+  let selectedPrice = '₩59,900';
+
+  function openModal(plan, price) {
+    if (plan) selectedPlan = plan;
+    if (price) selectedPrice = price;
+    document.getElementById('selectedPlanName').textContent = selectedPlan;
+    document.getElementById('selectedPlanPrice').textContent = selectedPrice;
+    document.getElementById('signupModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    resetSteps();
+  }
+
+  function closeModal() {
+    document.getElementById('signupModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function resetSteps() {
+    currentStep = 1;
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('formStep1').classList.add('active');
+    updateIndicators();
+  }
+
+  function updateIndicators() {
+    for (let i = 1; i <= 4; i++) {
+      const ind = document.getElementById('ind' + i);
+      ind.className = 'step-ind';
+      if (i < currentStep) ind.classList.add('done');
+      if (i === currentStep) ind.classList.add('current');
+    }
+  }
+
+  function nextStep(from) {
+    // Basic validation
+    if (from === 1) {
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const pw = document.getElementById('userPassword').value;
+      const pwc = document.getElementById('userPasswordConfirm').value;
+      if (!name || !email || !pw) {
+        shakeBtn(from);
+        return;
+      }
+      if (pw !== pwc) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+    }
+    if (from === 3) {
+      const apiKey = document.getElementById('apiKey').value;
+      const secretKey = document.getElementById('secretKey').value;
+      if (!apiKey || !secretKey) {
+        shakeBtn(from);
+        return;
+      }
+    }
+
+    document.getElementById('formStep' + from).classList.remove('active');
+    currentStep = from + 1;
+    document.getElementById('formStep' + currentStep).classList.add('active');
+    updateIndicators();
+  }
+
+  function prevStep(from) {
+    document.getElementById('formStep' + from).classList.remove('active');
+    currentStep = from - 1;
+    document.getElementById('formStep' + currentStep).classList.add('active');
+    updateIndicators();
+  }
+
+  function shakeBtn(step) {
+    const btn = document.querySelector('#formStep' + step + ' .btn-form-next');
+    btn.style.animation = 'shake 0.4s ease';
+    setTimeout(() => btn.style.animation = '', 400);
+  }
+
+  // Payment selection
+  function selectPayment(el) {
+    document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('signupModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ====== SCROLL ANIMATIONS ======
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Shake keyframe injection
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ====== THEME TOGGLE ======
+  const themeToggle = document.querySelector('.theme-toggle-btn');
+  const body = document.body;
+
+  function setTema(tema) {
+    if (tema === 'light') {
+        body.dataset.theme = 'light';
+        themeToggle.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+    } else {
+        delete body.dataset.theme;
+        themeToggle.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+    }
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    if (currentTheme === 'dark') {
+        setTema('light');
+    } else {
+        setTema('dark');
+    }
+  });
+
+  // Check for saved theme on page load
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    setTema(savedTheme);
+  } else {
+    // Default to dark
+    setTema('dark');
+  }
+</script>
+
 </body>
 </html>
